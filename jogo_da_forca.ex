@@ -1,75 +1,74 @@
-defmodule JogoDaForca do
-  @palavras ["elefante", "banana", "computador", "programação", "python", "elixir", "abacaxi"]
-  @max_tentativas 6
+defmodule EstadoJogo do
+  defstruct palavra: "", letras_corretas: [], letras_incorretas: [], tentativas_restantes: 6
+end
 
-  def palavra_aleatoria() do
+defmodule JogoDaForca do
+  @palavras ["tigre"]
+
+  def start do
+    palavra = escolher_palavra_aleatoria()
+    estado_jogo = %EstadoJogo{palavra: palavra, letras_corretas: [], letras_incorretas: [], tentativas_restantes: 6}
+    jogar(estado_jogo)
+  end
+
+  defp escolher_palavra_aleatoria do
     Enum.random(@palavras)
   end
 
-  def estado_atual(palavra, letras_corretas \\ []) do
-    palavra
-    |> String.graphemes()
-    |> Enum.map(fn letra ->
-      if letra in letras_corretas do
-        letra
-      else
-        "_"
+  def jogar(estado_jogo) do
+    IO.puts("Palavra: #{mascara_palavra(estado_jogo)}")
+    IO.puts("Letras já tentadas: #{estado_jogo.letras_incorretas ++ estado_jogo.letras_corretas}")
+    IO.puts("Tentativas restantes: #{estado_jogo.tentativas_restantes}")
+
+    case estado_jogo.tentativas_restantes do
+      0 ->
+        IO.puts("Você perdeu! A palavra era #{estado_jogo.palavra}.")
+      _ ->
+        IO.puts("Digite uma letra:")
+        letra = String.trim(IO.gets(""))
+
+        case String.downcase(letra) do
+          letra when byte_size(letra) == 1 ->
+            processar_tentativa(letra, estado_jogo)
+          _ ->
+            IO.puts("Por favor, digite apenas uma letra válida.")
+            jogar(estado_jogo)
+        end
+    end
+  end
+
+  defp mascara_palavra(%EstadoJogo{palavra: palavra, letras_corretas: letras_corretas}) do
+    for char <- String.graphemes(palavra), do: if char in letras_corretas, do: char, else: "_"
+  end
+
+  defp processar_tentativa(letra, estado_jogo) do
+    if letra in estado_jogo.letras_corretas or letra in estado_jogo.letras_incorretas do
+      IO.puts("Você já tentou essa letra.")
+      jogar(estado_jogo)
+    else
+      case letra in String.graphemes(estado_jogo.palavra) do
+        true ->
+          letras_corretas = [letra | estado_jogo.letras_corretas]
+          estado_jogo = %{estado_jogo | letras_corretas: letras_corretas}
+          jogar(atualizar_palavra_escondida(estado_jogo))
+        false ->
+          letras_incorretas = [letra | estado_jogo.letras_incorretas]
+          tentativas_restantes = estado_jogo.tentativas_restantes - 1
+          estado_jogo = %{estado_jogo | letras_incorretas: letras_incorretas, tentativas_restantes: tentativas_restantes}
+          jogar(estado_jogo)
       end
-    end)
-    |> Enum.join(" ")
-  end
-
-  def letra_correta?(palavra, letra) do
-    letra in String.codepoints(palavra)
-  end
-
-  def jogo_terminado?(palavra, letras_corretas, tentativas) do
-    palavra
-    |> String.graphemes()
-    |> Enum.all?(fn letra -> letra in letras_corretas end)
-    or tentativas >= @max_tentativas
-  end
-
-  def mostrar_estado_atual(palavra, letras_corretas, tentativas) do
-    IO.puts("Palavra: #{estado_atual(palavra, letras_corretas)}")
-    IO.puts("Tentativas Restantes: #{@max_tentativas - tentativas}")
-  end
-
-  def ler_entrada() do
-    IO.gets("Digite uma letra: ") |> String.trim() |> String.downcase()
-  end
-
-  def jogar() do
-    palavra = palavra_aleatoria()
-    letras_corretas = []
-    tentativas = 0
-
-    loop(palavra, letras_corretas, tentativas)
-  end
-
-  defp loop(palavra, letras_corretas, tentativas) do
-    mostrar_estado_atual(palavra, letras_corretas, tentativas)
-    letra = ler_entrada()
-
-    case letra_correta?(palavra, letra) do
-      true ->
-        letras_corretas = [letra | letras_corretas]
-      false ->
-        tentativas = tentativas + 1
-    end
-
-    if jogo_terminado?(palavra, letras_corretas, tentativas) do
-      mostrar_resultado(palavra, letras_corretas, tentativas)
-    else
-      loop(palavra, letras_corretas, tentativas)
     end
   end
 
-  defp mostrar_resultado(palavra, letras_corretas, tentativas) do
-    if Enum.all?(palavra, fn letra -> letra in letras_corretas end) do
-      IO.puts("Parabéns! Você ganhou!")
-    else
-      IO.puts("Você perdeu! A palavra era: #{palavra}")
-    end
+  defp atualizar_palavra_escondida(estado_jogo) do
+    palavra = estado_jogo.palavra
+    letras_corretas = estado_jogo.letras_corretas
+
+    palavra_escondida =
+      for char <- String.graphemes(palavra), do: if char in letras_corretas, do: char, else: "_"
+
+    %{estado_jogo | palavra: Enum.join(palavra_escondida)}
   end
 end
+
+JogoDaForca.start()
