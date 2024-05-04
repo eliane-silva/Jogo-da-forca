@@ -7,7 +7,9 @@ defmodule JogoDaForca do
   end
 
   def estado_atual(palavra, letras_corretas \\ []) do
-    Enum.map(palavra, fn letra ->
+    palavra
+    |> String.graphemes()
+    |> Enum.map(fn letra ->
       if letra in letras_corretas do
         letra
       else
@@ -18,11 +20,14 @@ defmodule JogoDaForca do
   end
 
   def letra_correta?(palavra, letra) do
-    letra in palavra
+    letra in String.codepoints(palavra)
   end
 
   def jogo_terminado?(palavra, letras_corretas, tentativas) do
-    palavra |> Enum.all(&(elem(&1, 0) in letras_corretas)) or tentativas >= @max_tentativas
+    palavra
+    |> String.graphemes()
+    |> Enum.all?(fn letra -> letra in letras_corretas end)
+    or tentativas >= @max_tentativas
   end
 
   def mostrar_estado_atual(palavra, letras_corretas, tentativas) do
@@ -42,10 +47,6 @@ defmodule JogoDaForca do
     loop(palavra, letras_corretas, tentativas)
   end
 
-  defp loop(palavra, letras_corretas, tentativas) when jogo_terminado?(palavra, letras_corretas, tentativas) do
-    mostrar_resultado(palavra, letras_corretas, tentativas)
-  end
-
   defp loop(palavra, letras_corretas, tentativas) do
     mostrar_estado_atual(palavra, letras_corretas, tentativas)
     letra = ler_entrada()
@@ -57,16 +58,18 @@ defmodule JogoDaForca do
         tentativas = tentativas + 1
     end
 
-    loop(palavra, letras_corretas, tentativas)
+    if jogo_terminado?(palavra, letras_corretas, tentativas) do
+      mostrar_resultado(palavra, letras_corretas, tentativas)
+    else
+      loop(palavra, letras_corretas, tentativas)
+    end
   end
 
   defp mostrar_resultado(palavra, letras_corretas, tentativas) do
-    if jogo_terminado?(palavra, letras_corretas, tentativas) do
-      if palavra |> Enum.all(&(elem(&1, 0) in letras_corretas)) do
-        IO.puts("Parabéns! Você ganhou!")
-      else
-        IO.puts("Você perdeu! A palavra era: #{palavra}")
-      end
+    if Enum.all?(palavra, fn letra -> letra in letras_corretas end) do
+      IO.puts("Parabéns! Você ganhou!")
+    else
+      IO.puts("Você perdeu! A palavra era: #{palavra}")
     end
   end
 end
