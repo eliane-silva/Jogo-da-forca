@@ -1,34 +1,73 @@
 defmodule EstadoJogo do
-  defstruct palavra: "", palavra_escondida: "", letras_corretas: [], letras_incorretas: [], tentativas_restantes: 6
+  defstruct categoria: "", palavra: "", palavra_escondida: "", letras_corretas: [], letras_incorretas: [], tentativas_restantes: 6
 end
 
 defmodule JogoDaForca do
-  @palavras ["tigre"]
+  @categorias ["animais", "frutas", "times de futebol"]
+  @animais ["tigre", "vaca", "elefante", "girafa", "leopardo", "guepardo", "capivara", "formiga", "sapo", "cachorro", "gato", "coelho", "ornitorrinco", "tubarão", "peixe", "macaco"]
+  @frutas ["manga", "mangaba", "banana", "laranja", "abacaxi", "abacate", "tangerina", "umbu", "pitomba", "jabuticaba"]
+  @times ["flamengo", "fluminense", "vasco", "botafogo", "corinthians", "palmeiras", "santos", "cruzeiro", "internacional", "gremio", "bahia", "treze", "campinense", "vitoria", "fortaleza", "ceara", "bangu", "guarani", "bragantino", "juventude", "chapecoense"]
 
   def start do
-    palavra = escolher_palavra_aleatoria()
+    IO.puts("\nBem vindo ao Jogo da Forca!")
+
+    loop()
+  end
+
+  defp loop do
+    categoria = escolher_categoria_aleatoria()
+    palavra = escolher_palavra_aleatoria(categoria)
     estado_jogo = %EstadoJogo{
+      categoria: categoria,
       palavra: palavra,
       palavra_escondida: String.duplicate("_", String.length(palavra)),
       letras_corretas: [],
       letras_incorretas: [],
       tentativas_restantes: 6
     }
+
     jogar(estado_jogo)
+
+    IO.puts("\nDeseja jogar novamente? (s/n)")
+    case String.downcase(IO.gets("")) do
+      "s\n" ->
+        loop()
+      _ ->
+        IO.puts("\nObrigado por jogar! Até mais.")
+    end
   end
 
-  defp escolher_palavra_aleatoria do
-    Enum.random(@palavras)
+  defp escolher_categoria_aleatoria do
+    Enum.random(@categorias)
+  end
+
+  defp escolher_palavra_aleatoria(categoria) do
+    case categoria do
+      "animais" -> Enum.random(@animais)
+      "frutas" -> Enum.random(@frutas)
+      "times de futebol" -> Enum.random(@times)
+    end
   end
 
   def jogar(estado_jogo) do
+    IO.puts("\nCategoria: #{estado_jogo.categoria}")
     IO.puts("Palavra: #{estado_jogo.palavra_escondida}")
-    IO.puts("Letras já tentadas: #{estado_jogo.letras_incorretas ++ estado_jogo.letras_corretas}")
+    letras_corretas_formatadas = Enum.join(estado_jogo.letras_corretas, " - ")
+    letras_incorretas_formatadas = Enum.join(estado_jogo.letras_incorretas, " - ")
+    IO.puts("Letras já tentadas: #{String.replace(letras_corretas_formatadas <> " - " <> letras_incorretas_formatadas, "-", "-")}")
     IO.puts("Tentativas restantes: #{estado_jogo.tentativas_restantes}")
-
+    case estado_jogo.tentativas_restantes do
+      6 -> IO.puts("______\n|     |\n|\n|\n|\n|\n")
+      5 -> IO.puts("______\n|     |\n|     O\n|\n|\n|\n")
+      4 -> IO.puts("______\n|     |\n|     O\n|     |\n|\n|\n")
+      3 -> IO.puts("______\n|     |\n|     O\n|    /|\n|\n|\n")
+      2 -> IO.puts("______\n|     |\n|     O\n|    /|\\ \n|\n|\n")
+      1 -> IO.puts("______\n|     |\n|     O\n|    /|\\ \n|    /\n|\n")
+      0 -> IO.puts("______\n|     |\n|     O\n|    /|\\ \n|    / \\ \n|\n\n  X  X\n   __\n  /  \\")
+    end
     case estado_jogo.tentativas_restantes do
       0 ->
-        IO.puts("Você perdeu! A palavra era #{estado_jogo.palavra}.")
+        IO.puts("\nVocê perdeu! A palavra era #{estado_jogo.palavra}.")
       _ ->
         case estado_jogo.palavra_escondida == estado_jogo.palavra do
           true ->
